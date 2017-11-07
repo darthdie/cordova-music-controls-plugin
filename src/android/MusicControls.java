@@ -33,6 +33,16 @@ public class MusicControls extends CordovaPlugin {
 	private PendingIntent mediaButtonPendingIntent;
 	private boolean mediaButtonAccess=true;
 
+	public static boolean isMyServiceRunning(Context context, Class<?> serviceClass) {
+		ActivityManager manager = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
+		for (ActivityManager.RunningServiceInfo service : manager.getRunningServices(Integer.MAX_VALUE)) {
+			if (serviceClass.getName().equals(service.service.getClassName())) {
+				return true;
+			}
+		}
+
+		return false;
+	}
 
 	private void registerBroadcaster(MusicControlsBroadcastReceiver mMessageReceiver){
 		final Context context = this.cordova.getActivity().getApplicationContext();
