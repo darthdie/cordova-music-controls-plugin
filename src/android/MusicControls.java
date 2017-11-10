@@ -9,6 +9,8 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.util.Calendar;
+
 import android.util.Log;
 import android.app.Activity;
 import android.content.Context;
@@ -24,6 +26,7 @@ import android.os.Build;
 import android.R;
 import android.content.BroadcastReceiver;
 import android.media.AudioManager;
+import android.app.AlarmManager;
 
 public class MusicControls extends CordovaPlugin {
 	private MusicControlsBroadcastReceiver mMessageReceiver;
@@ -32,17 +35,6 @@ public class MusicControls extends CordovaPlugin {
 	private AudioManager mAudioManager;
 	private PendingIntent mediaButtonPendingIntent;
 	private boolean mediaButtonAccess=true;
-
-	public static boolean isMyServiceRunning(Context context, Class<?> serviceClass) {
-		ActivityManager manager = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
-		for (ActivityManager.RunningServiceInfo service : manager.getRunningServices(Integer.MAX_VALUE)) {
-			if (serviceClass.getName().equals(service.service.getClassName())) {
-				return true;
-			}
-		}
-
-		return false;
-	}
 
 	private void registerBroadcaster(MusicControlsBroadcastReceiver mMessageReceiver){
 		final Context context = this.cordova.getActivity().getApplicationContext();
@@ -119,6 +111,8 @@ public class MusicControls extends CordovaPlugin {
 				public void run() {
 					notification.updateNotification(infos);
 					callbackContext.success("success");
+
+					updateNotificationKillQueue(context, infos.isPlaying);
 				}
 			});
 		}
@@ -127,6 +121,8 @@ public class MusicControls extends CordovaPlugin {
 			final boolean isPlaying = params.getBoolean("isPlaying");
 			this.notification.updateIsPlaying(isPlaying);
 			callbackContext.success("success");
+
+			updateNotificationKillQueue(context, isPlaying);
 		}
 		else if (action.equals("updateDismissable")){
 			final JSONObject params = args.getJSONObject(0);
@@ -162,5 +158,39 @@ public class MusicControls extends CordovaPlugin {
 	public void onReset() {
 		onDestroy();
 		super.onReset();
+	}
+
+	private void updateNotificationKillQueue(final Context context, final boolean isPlaying) {
+		if(isPlaying) {
+			dequeueNotificationKill(context);
+		}
+		else {
+			queueNotificationKill(context);
+		}
+	}
+
+	private void queueNotificationKill(final Context context) {
+		AlarmManager mgr = (AlarmManager)context.getSystemService(Context.ALARM_SERVICE);
+
+		mgr.set(AlarmManager.RTC_WAKEUP, minutesFromNow(10), createNotificationKillIntent(context));
+	}
+
+	private void dequeueNotificationKill(final Context context) {
+		AlarmManager mgr = (AlarmManager)context.getSystemService(Context.ALARM_SERVICE);
+
+		mgr.cancel(createNotificationKillIntent(context));
+	}
+
+	private PendingIntent createNotificationKillIntent(final Context context) {
+		Intent dismissIntent = new Intent("music-controls-destroy");
+		return PendingIntent.getBroadcast(context, 1, dismissIntent, 0);
+	}
+
+	private long minutesFromNow(int minutes) {
+		Calendar time = Calendar.getInstance();
+		time.setTimeInMillis(System.currentTimeMillis());
+		time.add(Calendar.MINUTE, minutes);
+
+		return time.getTimeInMillis();
 	}
 }

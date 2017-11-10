@@ -33,7 +33,6 @@ public class MusicControlsBroadcastReceiver extends BroadcastReceiver {
 
 	@Override
 	public void onReceive(Context context, Intent intent) {
-
 		if (this.cb != null){
 			String message = intent.getAction();
 
@@ -133,9 +132,6 @@ public class MusicControlsBroadcastReceiver extends BroadcastReceiver {
 				this.cb.success("{\"message\": \"" + message + "\"}");
 				this.cb = null;
 			}
-
-
 		}
-
 	}
 }
